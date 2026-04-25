@@ -56,12 +56,13 @@ data class MessageListResponse(
 
 @Serializable
 data class Message(
-    val id: String,
-    val session_id: String,
-    val role: String,
-    val data: MessageData,
-    val time_created: Long,
-    val time_updated: Long,
+ val id: String,
+ val session_id: String,
+ val role: String,
+ val data: MessageData,
+ val parts: List<Part> = emptyList(),
+ val time_created: Long,
+ val time_updated: Long,
 )
 
 @Serializable

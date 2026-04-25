@@ -12,5 +12,9 @@ data class ServerConfig(
 
 enum class ConnectionMode(val label: String) {
     EMBEDDED("Embedded"),
-    REMOTE("Remote"),
+    REMOTE("Remote");
+
+    companion object {
+        val DEFAULT = REMOTE
+    }
 }

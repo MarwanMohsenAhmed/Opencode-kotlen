@@ -86,10 +86,10 @@ class SettingsViewModel @Inject constructor(
     val connectionMode: Flow<ConnectionMode> = dataStore.data.map { prefs ->
         when (prefs[SettingsKeys.CONNECTION_MODE]) {
             ConnectionMode.REMOTE.name -> ConnectionMode.REMOTE
-            else -> ConnectionMode.EMBEDDED
+            else -> ConnectionMode.DEFAULT
         }
     }
-    val connectionModeState = connectionMode.stateIn(viewModelScope, SharingStarted.Eagerly, ConnectionMode.EMBEDDED)
+    val connectionModeState = connectionMode.stateIn(viewModelScope, SharingStarted.Eagerly, ConnectionMode.DEFAULT)
 
     val directory: Flow<String> = dataStore.data.map { prefs ->
         prefs[SettingsKeys.DIRECTORY] ?: "/root"

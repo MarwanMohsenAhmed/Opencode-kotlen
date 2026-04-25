@@ -40,8 +40,10 @@ fun ChatScreen(
 ) {
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(sessionId) {
         viewModel.loadSession(sessionId)
@@ -238,7 +240,18 @@ private fun EmptyChatState(modifier: Modifier = Modifier) {
 }
 
 private fun extractMessageText(message: Message): String {
-    return message.data.error ?: message.role
+ if (message.parts.isEmpty()) {
+ return message.data.error ?: ""
+ }
+ val textParts = message.parts.filter { it.type == "text" && it.data.text != null }
+ if (textParts.isNotEmpty()) {
+ return textParts.joinToString("\n\n") { it.data.text!! }
+ }
+ val toolCalls = message.parts.filter { it.type == "tool-call" }
+ if (toolCalls.isNotEmpty()) {
+ return toolCalls.joinToString("\n") { "[${it.data.tool ?: "tool"}] ${it.data.input ?: ""}" }
+ }
+ return message.data.error ?: ""
 }
 
 private fun formatTime(timestamp: Long): String {
@@ -257,17 +270,28 @@ class ChatViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
     fun loadSession(sessionId: String) {
         viewModelScope.launch {
             sessionRepo.loadSession(sessionId)
+            sessionRepo.error.collect { repoError ->
+                if (repoError != null) {
+                    _error.value = repoError
+                }
+            }
         }
     }
 
     fun sendMessage(content: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             try {
                 sessionRepo.sendMessage(content)
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to send message"
             } finally {
                 _isLoading.value = false
             }
@@ -276,8 +300,17 @@ class ChatViewModel @Inject constructor(
 
     fun abort() {
         viewModelScope.launch {
-            sessionRepo.abortSession()
-            _isLoading.value = false
+            try {
+                sessionRepo.abortSession()
+            } catch (e: Exception) {
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }

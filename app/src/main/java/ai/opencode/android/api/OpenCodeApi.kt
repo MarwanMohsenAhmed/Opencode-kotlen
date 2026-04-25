@@ -57,31 +57,41 @@ class OpenCodeApi(
     private fun request(path: String): Request.Builder =
         Request.Builder().url("$baseUrl$path")
 
-    private inline fun <reified T> get(path: String): T {
-        val response = client.newCall(request(path).build()).execute()
-        if (!response.isSuccessful) throw OpenCodeException(response.code, response.body?.string())
-        return json.decodeFromStream<T>(response.body!!.byteStream())
+private inline fun <reified T> get(path: String): T {
+    val response = client.newCall(request(path).build()).execute()
+    response.use {
+        if (!it.isSuccessful) throw OpenCodeException(it.code, it.body?.string())
+        val body = it.body ?: throw OpenCodeException(it.code, "Empty response body")
+        return json.decodeFromStream<T>(body.byteStream())
     }
+}
 
-    private inline fun <reified T> post(path: String, bodyStr: String): T {
-        val response = client.newCall(
-            request(path).post(bodyStr.toRequestBody(contentType)).build()
-        ).execute()
-        if (!response.isSuccessful) throw OpenCodeException(response.code, response.body?.string())
-        return json.decodeFromStream<T>(response.body!!.byteStream())
+private inline fun <reified T> post(path: String, bodyStr: String): T {
+    val response = client.newCall(
+        request(path).post(bodyStr.toRequestBody(contentType)).build()
+    ).execute()
+    response.use {
+        if (!it.isSuccessful) throw OpenCodeException(it.code, it.body?.string())
+        val body = it.body ?: throw OpenCodeException(it.code, "Empty response body")
+        return json.decodeFromStream<T>(body.byteStream())
     }
+}
 
-    private fun patch(path: String, bodyStr: String) {
-        val response = client.newCall(
-            request(path).patch(bodyStr.toRequestBody(contentType)).build()
-        ).execute()
-        if (!response.isSuccessful) throw OpenCodeException(response.code, response.body?.string())
+private fun patch(path: String, bodyStr: String) {
+    val response = client.newCall(
+        request(path).patch(bodyStr.toRequestBody(contentType)).build()
+    ).execute()
+    response.use {
+        if (!it.isSuccessful) throw OpenCodeException(it.code, it.body?.string())
     }
+}
 
-    private fun delete(path: String) {
-        val response = client.newCall(request(path).delete().build()).execute()
-        if (!response.isSuccessful) throw OpenCodeException(response.code, response.body?.string())
+private fun delete(path: String) {
+    val response = client.newCall(request(path).delete().build()).execute()
+    response.use {
+        if (!it.isSuccessful) throw OpenCodeException(it.code, it.body?.string())
     }
+}
 
     private fun buildJsonObject(fields: Map<String, String?>): JsonObject {
         val map = fields.mapValues { v ->
@@ -113,26 +123,30 @@ class OpenCodeApi(
         patch("/session/$sessionId", bodyStr)
     }
 
-    suspend fun listMessages(sessionId: String, limit: Int = 50, before: String? = null): MessageListResponse {
-        val path = buildString {
-            append("/session/$sessionId/message?limit=$limit")
-            before?.let { append("&before=$it") }
-        }
-        return get(path)
-    }
+suspend fun listMessages(sessionId: String, limit: Int = 50, before: String? = null): MessageListResponse {
+ val path = buildString {
+ append("/session/$sessionId/message?limit=$limit")
+ before?.let { append("&before=$it") }
+ }
+ return get(path)
+ }
 
-    suspend fun sendMessage(sessionId: String, content: String, agent: String? = null): PromptResponse {
+ suspend fun listParts(sessionId: String, messageId: String): List<Part> = get("/session/$sessionId/message/$messageId/part")
+
+ suspend fun sendMessage(sessionId: String, content: String, agent: String? = null): PromptResponse {
         val body = PromptRequest(content = content, agent = agent)
         val bodyStr = json.encodeToString(PromptRequest.serializer(), body)
         return post("/session/$sessionId/message", bodyStr)
     }
 
-    suspend fun abortSession(sessionId: String) {
-        val response = client.newCall(
-            request("/session/$sessionId/abort").post("{}".toRequestBody(contentType)).build()
-        ).execute()
-        if (!response.isSuccessful) throw OpenCodeException(response.code, response.body?.string())
+suspend fun abortSession(sessionId: String) {
+    val response = client.newCall(
+        request("/session/$sessionId/abort").post("{}".toRequestBody(contentType)).build()
+    ).execute()
+    response.use {
+        if (!it.isSuccessful) throw OpenCodeException(it.code, it.body?.string())
     }
+}
 
     suspend fun listAgents(): List<Agent> = get("/agent")
 
@@ -149,13 +163,15 @@ class OpenCodeApi(
 
     suspend fun listPermissions(): List<PermissionRequest> = get("/permission")
 
-    suspend fun replyPermission(requestId: String, allow: Boolean) {
-        val bodyStr = json.encodeToString(PermissionReply.serializer(), PermissionReply(allow = allow))
-        val response = client.newCall(
-            request("/permission/$requestId/reply").post(bodyStr.toRequestBody(contentType)).build()
-        ).execute()
-        if (!response.isSuccessful) throw OpenCodeException(response.code, response.body?.string())
+suspend fun replyPermission(requestId: String, allow: Boolean) {
+    val bodyStr = json.encodeToString(PermissionReply.serializer(), PermissionReply(allow = allow))
+    val response = client.newCall(
+        request("/permission/$requestId/reply").post(bodyStr.toRequestBody(contentType)).build()
+    ).execute()
+    response.use {
+        if (!it.isSuccessful) throw OpenCodeException(it.code, it.body?.string())
     }
+}
 
     fun subscribeEvents(
         onEvent: (EventMessage) -> Unit,
