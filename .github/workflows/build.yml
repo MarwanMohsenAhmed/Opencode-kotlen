@@ -34,17 +34,29 @@ jobs:
       with:
         cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
 
+    - name: Generate debug keystore
+      run: |
+        keytool -genkeypair -v \
+          -keystore app/debug.keystore \
+          -alias androiddebugkey \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -storepass android \
+          -keypass android \
+          -dname "CN=OpenCode, OU=Debug, O=OpenCode, L=Remote, ST=Remote, C=US"
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build release APK
-      run: ./gradlew assembleRelease
+    - name: Build debug APK
+      run: ./gradlew assembleDebug
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: release-apk
-        path: app/build/outputs/apk/release/*.apk
+        name: debug-apk
+        path: app/build/outputs/apk/debug/*.apk
         retention-days: 14
 
     - name: Upload build reports on failure
@@ -75,25 +87,23 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    - name: Decode keystore
+    - name: Generate debug keystore
       run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore
+        keytool -genkeypair -v \
+          -keystore app/debug.keystore \
+          -alias androiddebugkey \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -storepass android \
+          -keypass android \
+          -dname "CN=OpenCode, OU=Debug, O=OpenCode, L=Remote, ST=Remote, C=US"
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build signed release APK
-      env:
-        KEYSTORE_FILE: release.keystore
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        ./gradlew assembleRelease \
-        -Pandroid.signingConfigs.release.storeFile="$KEYSTORE_FILE" \
-        -Pandroid.signingConfigs.release.storePassword="$KEYSTORE_PASSWORD" \
-        -Pandroid.signingConfigs.release.keyAlias="$KEY_ALIAS" \
-        -Pandroid.signingConfigs.release.keyPassword="$KEY_PASSWORD"
+    - name: Build release APK (debug-signed)
+      run: ./gradlew assembleRelease
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
