@@ -135,6 +135,7 @@ private fun buildDescription(tool: String, input: String?): String {
 fun PermissionOverlay(
     repository: PermissionRepository,
 ) {
+    val scope = rememberCoroutineScope()
     val pendingPermissions by repository.pendingPermissions.collectAsState()
     val firstPending = pendingPermissions.firstOrNull()
 
@@ -142,11 +143,9 @@ fun PermissionOverlay(
         PermissionDialog(
             request = firstPending,
             onAllow = { requestId ->
-                val scope = rememberCoroutineScope()
                 scope.launch { repository.reply(requestId, allow = true) }
             },
             onDeny = { requestId ->
-                val scope = rememberCoroutineScope()
                 scope.launch { repository.reply(requestId, allow = false) }
             },
             onDismiss = {},

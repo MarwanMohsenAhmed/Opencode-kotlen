@@ -142,10 +142,10 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val serverUrl by viewModel.serverUrlState
-    val serverPassword by viewModel.serverPasswordState
-    val connectionMode by viewModel.connectionModeState
-    val directory by viewModel.directoryState
+    val serverUrl by viewModel.serverUrlState.collectAsState()
+    val serverPassword by viewModel.serverPasswordState.collectAsState()
+    val connectionMode by viewModel.connectionModeState.collectAsState()
+    val directory by viewModel.directoryState.collectAsState()
 
     var testInProgress by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<String?>(null) }

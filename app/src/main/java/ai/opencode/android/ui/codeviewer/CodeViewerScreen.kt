@@ -42,6 +42,8 @@ fun CodeViewerScreen(
     val fileContent by viewModel.fileContent.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val fileContentValue = fileContent
+    val errorValue = error
     val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(filePath) {
@@ -67,10 +69,10 @@ fun CodeViewerScreen(
                     }
                 },
                 actions = {
-                    if (fileContent != null) {
+                    if (fileContentValue != null) {
                         IconButton(
                             onClick = {
-                                clipboardManager.setText(AnnotatedString(fileContent.content))
+                                clipboardManager.setText(AnnotatedString(fileContentValue.content))
                             }
                         ) {
                             Icon(
@@ -95,7 +97,7 @@ fun CodeViewerScreen(
                     CircularProgressIndicator()
                 }
             }
-            error != null -> {
+            errorValue != null -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -105,14 +107,14 @@ fun CodeViewerScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = error,
+                        text = errorValue,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.error
                     )
                 }
             }
-            fileContent != null -> {
-                val lines = fileContent.content.lines()
+            fileContentValue != null -> {
+                val lines = fileContentValue.content.lines()
                 val lineNumberWidth = lines.size.toString().length
 
                 Column(

@@ -63,8 +63,7 @@ class OpenCodeApi(
         return json.decodeFromStream<T>(response.body!!.byteStream())
     }
 
-    private inline fun <reified T, reified B> post(path: String, body: B): T {
-        val bodyStr = json.encodeToString(body)
+    private inline fun <reified T> post(path: String, bodyStr: String): T {
         val response = client.newCall(
             request(path).post(bodyStr.toRequestBody(contentType)).build()
         ).execute()
@@ -101,7 +100,8 @@ class OpenCodeApi(
 
     suspend fun createSession(directory: String, title: String? = null): Session {
         val body = CreateSessionRequest(title = title, directory = directory)
-        return post("/session", body)
+        val bodyStr = json.encodeToString(CreateSessionRequest.serializer(), body)
+        return post("/session", bodyStr)
     }
 
     suspend fun deleteSession(sessionId: String) = delete("/session/$sessionId")
@@ -123,7 +123,8 @@ class OpenCodeApi(
 
     suspend fun sendMessage(sessionId: String, content: String, agent: String? = null): PromptResponse {
         val body = PromptRequest(content = content, agent = agent)
-        return post("/session/$sessionId/message", body)
+        val bodyStr = json.encodeToString(PromptRequest.serializer(), body)
+        return post("/session/$sessionId/message", bodyStr)
     }
 
     suspend fun abortSession(sessionId: String) {
