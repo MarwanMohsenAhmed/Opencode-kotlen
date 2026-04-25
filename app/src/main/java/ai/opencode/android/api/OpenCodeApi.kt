@@ -64,7 +64,7 @@ class OpenCodeApi(
     }
 
     private inline fun <reified T, reified B> post(path: String, body: B): T {
-        val bodyStr = json.encodeToString(serializer<B>(), body)
+        val bodyStr = json.encodeToString(body)
         val response = client.newCall(
             request(path).post(bodyStr.toRequestBody(contentType)).build()
         ).execute()
